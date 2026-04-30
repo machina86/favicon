@@ -6,8 +6,38 @@ namespace Genkgo\Favicon;
 
 final class AppleSafariPinGenerator implements GeneratorInterface
 {
-    public function __construct(private readonly Input $input, private readonly string $executable = 'magick')
+   public function __construct(
+        private readonly Input $input,
+        private readonly ?string $executable = null
+    ) {
+    }
+
+    private function getExecutable(): string
     {
+        if ($this->executable !== null) {
+            return $this->executable;
+        }
+
+        foreach (['magick', 'convert'] as $candidate) {
+            $process = \proc_open(
+                [$candidate, '-version'],
+                [
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w'],
+                ],
+                $pipes
+            );
+
+            if (\is_resource($process)) {
+                $return = \proc_close($process);
+
+                if ($return === 0) {
+                    return $candidate;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Could not find ImageMagick executable. Tried magick and convert.');
     }
 
     public function generate(): string
@@ -30,15 +60,17 @@ final class AppleSafariPinGenerator implements GeneratorInterface
                     2 => ["pipe", "w"],
                 ];
 
+                $executable = $this->getExecutable();
+
                 $process = \proc_open(
-                    [$this->executable, $source, 'SVG:' . $target],
+                    [$executable, $source, 'SVG:' . $target],
                     $descriptor,
                     $pipes,
                     '/tmp'
                 );
 
                 if (!\is_resource($process)) {
-                    throw new \RuntimeException('Failed to start ImageMagick process.');
+                    throw new \RuntimeException('Failed to start ImageMagick process using executable: ' . $executable);
                 }
 
                 $stdout = isset($pipes[1]) && \is_resource($pipes[1])
@@ -50,10 +82,10 @@ final class AppleSafariPinGenerator implements GeneratorInterface
                     : '';
 
                 $return = \proc_close($process);
-                
+
                 if ($return !== 0) {
-                    throw new \UnexpectedValueException(
-                        'Failed to convert PNG to SVG. Got return code ' . $return . '.'  . $stdout . $stderr
+                    throw new \RuntimeException(
+                        'Failed to convert PNG to SVG. Got return code ' . $return . '. ' . $stdout . $stderr
                     );
                 }
 
