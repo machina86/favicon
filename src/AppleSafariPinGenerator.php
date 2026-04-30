@@ -13,16 +13,13 @@ final class AppleSafariPinGenerator implements GeneratorInterface
     }
 
     private function getExecutable(): string
-{
-        // 1. Try system PATH
-        foreach (['magick', 'convert'] as $cmd) {
-            $path = \trim((string) \shell_exec("command -v $cmd 2>/dev/null"));
-            if ($path !== '' && \is_executable($path)) {
-                return $path;
-            }
+    {
+        // Allow override if provided
+        if ($this->executable !== null && $this->executable !== '') {
+            return $this->executable;
         }
 
-        // 2. Fallback to known locations
+        // Known safe locations (your server first)
         foreach ([
             '/usr/local/imagemagick7/bin/magick',
             '/usr/local/bin/magick',
@@ -35,7 +32,9 @@ final class AppleSafariPinGenerator implements GeneratorInterface
             }
         }
 
-        throw new \RuntimeException('Could not find ImageMagick executable.');
+        throw new \RuntimeException(
+            'Could not find ImageMagick executable. shell_exec is disabled, so only known paths were checked.'
+        );
     }
 
     public function generate(): string
