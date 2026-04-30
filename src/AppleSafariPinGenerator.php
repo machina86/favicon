@@ -16,8 +16,8 @@ final class AppleSafariPinGenerator implements GeneratorInterface
 {
         // 1. Try system PATH
         foreach (['magick', 'convert'] as $cmd) {
-            $path = trim((string) shell_exec("command -v $cmd 2>/dev/null"));
-            if ($path !== '' && is_executable($path)) {
+            $path = \trim((string) \shell_exec("command -v $cmd 2>/dev/null"));
+            if ($path !== '' && \is_executable($path)) {
                 return $path;
             }
         }
@@ -30,7 +30,7 @@ final class AppleSafariPinGenerator implements GeneratorInterface
             '/usr/local/bin/convert',
             '/usr/bin/convert',
         ] as $candidate) {
-            if (is_executable($candidate)) {
+            if (\is_executable($candidate)) {
                 return $candidate;
             }
         }
