@@ -30,16 +30,27 @@ final class AppleSafariPinGenerator implements GeneratorInterface
                     2 => ["pipe", "w"],
                 ];
 
-                $process = \proc_open([$this->executable, $source, 'SVG:' . $target], $descriptor, $pipes, '/tmp');
+                $process = \proc_open(
+                    [$this->executable, $source, 'SVG:' . $target],
+                    $descriptor,
+                    $pipes,
+                    '/tmp'
+                );
 
-                $stdout = \stream_get_contents($pipes[1]);
-                $stderr = \stream_get_contents($pipes[2]);
+                if (!\is_resource($process)) {
+                    throw new \RuntimeException('Failed to start ImageMagick process.');
+                }
 
-                \fclose($pipes[0]);
-                \fclose($pipes[1]);
-                \fclose($pipes[2]);
+                $stdout = isset($pipes[1]) && \is_resource($pipes[1])
+                    ? \stream_get_contents($pipes[1])
+                    : '';
+
+                $stderr = isset($pipes[2]) && \is_resource($pipes[2])
+                    ? \stream_get_contents($pipes[2])
+                    : '';
 
                 $return = \proc_close($process);
+                
                 if ($return !== 0) {
                     throw new \UnexpectedValueException(
                         'Failed to convert PNG to SVG. Got return code ' . $return . '.'  . $stdout . $stderr
