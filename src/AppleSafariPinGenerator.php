@@ -12,31 +12,6 @@ final class AppleSafariPinGenerator implements GeneratorInterface
     ) {
     }
 
-    private function getExecutable(): string
-    {
-        // Allow override if provided
-        if ($this->executable !== null && $this->executable !== '') {
-            return $this->executable;
-        }
-
-        // Known safe locations (your server first)
-        foreach ([
-            '/usr/local/imagemagick7/bin/magick',
-            '/usr/local/bin/magick',
-            '/usr/bin/magick',
-            '/usr/local/bin/convert',
-            '/usr/bin/convert',
-        ] as $candidate) {
-            if (\is_executable($candidate)) {
-                return $candidate;
-            }
-        }
-
-        throw new \RuntimeException(
-            'Could not find ImageMagick executable. shell_exec is disabled, so only known paths were checked.'
-        );
-    }
-
     public function generate(): string
     {
         if ($this->input->type === InputImageType::SVG) {
@@ -57,10 +32,8 @@ final class AppleSafariPinGenerator implements GeneratorInterface
                     2 => ["pipe", "w"],
                 ];
 
-                $executable = $this->getExecutable();
-
                 $process = \proc_open(
-                    [$executable, $source, 'SVG:' . $target],
+                    [$this->executable, $source, 'SVG:' . $target],
                     $descriptor,
                     $pipes,
                     '/tmp'
@@ -118,11 +91,32 @@ final class AppleSafariPinGenerator implements GeneratorInterface
 
     public static function cliImageMagick6(Input $input): self
     {
+        foreach ([
+            '/usr/local/bin/convert',
+            '/usr/bin/convert',
+            '/opt/homebrew/bin/convert',
+        ] as $candidate) {
+            if (\is_executable($candidate)) {
+                return new self($input, $candidate);
+            }
+        }
+
         return new self($input, 'convert');
     }
 
     public static function cliImageMagick7(Input $input): self
     {
+        foreach ([
+            '/usr/local/imagemagick7/bin/magick',
+            '/usr/local/bin/magick',
+            '/opt/homebrew/bin/magick',
+            '/usr/bin/magick',
+        ] as $candidate) {
+            if (\is_executable($candidate)) {
+                return new self($input, $candidate);
+            }
+        }
+
         return new self($input, 'magick');
     }
 
